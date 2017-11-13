@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 이 xml을 통해서 자동으로 mapping해주기 때문에 '?'부분이 mapping될 수 있도록 vo위치를 지정해 줘야 한다. -->
+<mapper namespace="user">
+	<!-- string, long, map 등의 자바 api객체들은 이미 spring에서 alias를 내장시켜 줬다.(소문자로 내장시켰기 때문에 내가 쓰는 alias도 소문자로 통일 - configuration.xml참고) -->
+	<!-- resultType을 설정해주면 dao코드에서 resulttype이 object에서 설정한 타입으로 바뀐다.(컴파일 에러 추출가능해짐) -->
+	<select id="getByEmailAndPassword" parameterType="map" resultType="uservo">
+		<![CDATA[
+			select no, name, role 
+			  from member 
+			 where email=#{email }
+			   and password=#{password }
+		]]>
+	</select>
+	
+	<!-- mybatis는 칼럼 이름을 보고 uservo의 변수이름을 알기 때문에 맞춰야 한다. 때문에 reg_date와 같이 서로 맞지 않는 것은 문제가 될 수 있다. -->
+	<!-- table의 컬럼이름과 vo의 객체 이름이 다르면 resultMap으로 할 수 있으나, 'as'를 쓰면 편하다 -->
+	<!-- select no, name, email, gender, reg_date as regDate -->
+	<!-- sql문에서 ?가 1개만 binding되는 것은 #{}안의 변수명을 정말로 아무거나 써도 되지만 알아보기 쉽게 해 준다. -->
+	<select id="getByNo" parameterType="long" resultType="uservo">
+		<![CDATA[
+			select no, name, email, gender
+			  from member 
+			 where no=#{no }
+		]]>
+	</select>
+
+	<select id="getByEmail" parameterType="string" resultType="uservo">
+		<![CDATA[
+			select no, name
+			  from member
+			 where email=#{email }
+		]]>
+	</select>
+	
+	<update id="update" parameterType="uservo">
+		<![CDATA[
+			update member 
+			   set name=#{name },
+		]]>
+		<if test="password != ''">
+			<![CDATA[			   
+			  	   password=#{password },
+			]]>  	   
+		</if>	   	   
+		<![CDATA[	   	   
+			       gender=#{gender }
+			 where no=#{no }		
+		]]>
+	</update>
+
+	<insert id="insert" parameterType="uservo">
+		<!-- xml에서는 아래와 같이 tag사이에 CDATA라고 넣어주면 where문 안의 '<', '>'같은 것을 넣어도 안전하게 처리된다. -->
+		<![CDATA[
+		insert 
+			into member
+		values ( seq_member.nextval, 
+				#{name }, 
+				#{password }, 
+				#{email }, 
+				#{gender }, 
+				sysdate,
+				'USER')
+		]]>
+		<!-- #{pass_word }같은 이름을 쓰게 되면 xml 설정으로 자동으로 mapping시켜주게 되는데 문제가 될 수 있다. -->
+	</insert>
+</mapper>

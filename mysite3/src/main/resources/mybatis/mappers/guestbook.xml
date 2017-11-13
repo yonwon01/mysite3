@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="guestbook">
+	<!-- guestbookvo가 returnType이지만, 알아서 list로 변환해서 넘겨준다. -->
+	<select id="getList" resultType="guestbookvo">
+		<![CDATA[
+		  select no, 
+			 	 name, 
+			 	 content, 
+			 	 to_char(reg_date, 'yyyy-mm-dd hh:mi:ss') as regDate 
+		    from guestbook 
+		order by reg_date desc
+		]]>
+	</select>
+	
+	<select id="getList2" parameterType="long" resultType="guestbookvo">
+		<![CDATA[
+	  	select a.*
+		  from (  select no, 
+					 	 name, 
+					 	 content, 
+					 	 to_char(reg_date, 'yyyy-mm-dd hh:mi:ss') as regDate 
+				    from guestbook 
+	    ]]>
+	    <!-- 조건문 안에서는 파라미터값을 아무렇게나 쓰면 안되고, "_parameter"라고 이름이 정해져 있다. -->
+	    <if test="_parameter > 0">
+	    	<![CDATA[
+				   where no < #{_parameter }
+			]]>
+		</if>
+		<![CDATA[
+				order by reg_date desc) a
+		 where rownum <= 5
+		]]>
+	</select>
+	
+	<delete id="delete" parameterType="guestbookvo">
+		<![CDATA[
+			delete 
+			  from guestbook 
+			 where no=#{no }
+			   and password=#{password }
+		]]>
+	</delete>
+	
+	<insert id="insert" parameterType="guestbookvo">
+		<![CDATA[
+		  insert 
+			into guestbook 
+		  values (  #{no },
+		  			#{name }, 
+		  			#{password }, 
+		  			#{content }, 
+		  			sysdate )
+		]]>
+		<!-- insert쿼리를 날리기 전에 selectKey tag의 쿼리를 먼저 실행을 하고, keyProperty값을 참고해서 위의 쿼리에 넣어줘라 -->
+		<!-- primary key값을 구할 때 사용하는데, 이는 자동생성이니 DB에서 쿼리날리면서 생성하면서 pk를 가져올 수 있게 하여 편하다 -->
+		<selectKey keyProperty="no" resultType="long" order="BEFORE">
+			select seq_guestbook.nextval from dual
+		</selectKey>
+	</insert>
+	
+	
+</mapper>

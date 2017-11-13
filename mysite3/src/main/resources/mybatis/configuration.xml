@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<typeAliases>
+	<!-- alias는 관례상 '소문자'로 주게 되어 있음 -->
+	<!-- 아래의 typeAlias를 설정하면 mapping되는 user.xml에서는 alias를 사용하여 변수처럼 사용 가능 -->
+		<typeAlias alias="uservo" type="com.bigdata2017.mysite.vo.UserVo"/>
+		<typeAlias alias="guestbookvo" type="com.bigdata2017.mysite.vo.GuestbookVo"/>
+		<typeAlias alias="boardvo" type="com.bigdata2017.mysite.vo.BoardVo"/>
+		<typeAlias alias="galleryvo" type="com.bigdata2017.mysite.vo.GalleryVo"/>
+    </typeAliases>
+    
+    <!-- mybatis는 ORM(object-relation-mapping)이라고 하나 개념이 좀 약하다.
+    1. SQL + bean : SQL문과 parameter를 mapping(preparedStatement binding작업부분)
+    2. ResultSet + bean -->	
+	<mappers>
+		<mapper resource="mybatis/mappers/user.xml"/>
+		<mapper resource="mybatis/mappers/guestbook.xml"/>
+		<mapper resource="mybatis/mappers/board.xml"/>
+		<mapper resource="mybatis/mappers/gallery.xml"/>
+	</mappers>
+	
+</configuration>

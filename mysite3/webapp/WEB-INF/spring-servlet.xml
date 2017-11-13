@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns="http://www.springframework.org/schema/beans"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd
+   http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+   http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+   http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+	<!-- validator, conversionService, messageConverter를 자동으로 등록 -->
+	<mvc:annotation-driven>
+		<!-- messageConverter를 기본설정이 아닌 바꾸고 싶을 때 직접 설정해줌(ViewResolver도 마찬가지였음), 
+			설정을 하면 기본설징이 안되니 기본설정까지 다 해줘야함 -->
+		<mvc:message-converters>
+			<bean class="org.springframework.http.converter.StringHttpMessageConverter">
+				<property name="supportedMediaTypes">
+					<list>
+						<!-- 이렇게 charset을 설정해 놓으면 controller에서 @ResponseBody로 한글 String을 response해 주는 경우에도 한글이 안깨짐 -->
+						<!-- 이 messageConverter는 Spring에서 HttpSessionResponse를 제거하려고 (기술제거를 위해) 사용함 -->
+						<value>text/html; charset=UTF-8</value>
+					</list>
+				</property>
+			</bean>
+			<!-- Jackson lib를 maven(pom.xml)으로 추가 후, map이나 json객체를 messageConverter로 등록해서 사용가능 -->
+			<bean
+				class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+				<property name="supportedMediaTypes">
+					<list>
+						<value>application/json; charset=UTF-8</value>
+					</list>
+				</property>
+			</bean>
+		</mvc:message-converters>
+		<!-- argument resolver : DispatcherServlet이 argument를 사용하기 전에 이 정보를 보고 분석해감? -->
+		<mvc:argument-resolvers>
+			<bean class="com.bigdata2017.security.AuthUserHandlerMethodArgumentResolver" />
+		</mvc:argument-resolvers>
+	</mvc:annotation-driven>
+
+	<!-- Interceptors(tomcat의 필터와 유사하나, spring security에서 제공하는 것으로, controller에게 가기 전에 인터셉터한다 -->
+	<mvc:interceptors>
+		<!-- <mvc:interceptor> <mvc:mapping path="/guestbook/**" /> <bean class="com.bigdata2017.mysite.interceptor.Myinterceptor02" 
+			/> </mvc:interceptor> -->
+		<mvc:interceptor>
+			<!-- path를 /auth/로 준 이유는 controller에서 인증을 다 빼 버리기 위함 -->
+			<mvc:mapping path="/user/auth" />
+			<bean class="com.bigdata2017.security.AuthLoginInterceptor"></bean>
+		</mvc:interceptor>
+		<mvc:interceptor>
+			<mvc:mapping path="/user/logout" />
+			<bean class="com.bigdata2017.security.AuthLogoutInterceptor"></bean>
+		</mvc:interceptor>
+		<mvc:interceptor>
+			<!-- 모든 경로를 다 받도록 하였으니, 위의 interceptor와 겹칠 수 있다. 따라서 명시적으로 제외시켜줘야 한다. -->
+			<mvc:mapping path="/**" />
+			<mvc:exclude-mapping path="/user/auth" />
+			<mvc:exclude-mapping path="/user/logout" />
+			<mvc:exclude-mapping path="/assets/**" />
+			<bean class="com.bigdata2017.security.AuthInterceptor"></bean>
+		</mvc:interceptor>
+	</mvc:interceptors>
+
+	<!-- 6. MessageSource -->
+	<!-- spring에서 @Valid를 체크 후, BindingResult를 JSP로 보낼 때, JSP page에서 default message를 한글로 받고 싶을 때 아래의 객체를 등록 -->
+	<!-- src/main/resources에 message패키지를 만들고, 국가별로 properties를 등록해 주면 된다. -->
+	<bean id="messageSource"
+		class="org.springframework.context.support.ResourceBundleMessageSource">
+		<property name="basenames">
+			<list>
+				<value>messages/messages_ko</value>
+			</list>
+		</property>
+	</bean>
+
+
+	<!-- 서블릿 컨테이너의 디폴트 서블릿 위임 핸들러 : (정적 자원(/images/logo.jpg등)에 접근하기 위해 톰캣의 디폴트 
+		서블릿을 사용하는데, 스프링은 DispatcherServlet으로 모든 주소가 접근하게 되니까 handlerMapping에서 디폴트 
+		서블릿에 해당되는 핸들러가 생성되지 않아서 아래와 같이 설정해 만들어 줘야 한다. -->
+	<mvc:default-servlet-handler />
+	
+	<!-- resource mapping -->
+	<!-- 'file:'을 적어주면, 파일 시스템에서 검색하고 안적어주면 webapp에서 검색함 -->
+	<!-- mapping을 시켜주면 /uploads/images/의 모든 경로로 들어오는 것을 파일시스템의 /uploads에서 매핑 후 검색함 -->
+	<mvc:resources location="file:/uploads/" mapping="/gallery/images/**"/>
+
+	<!-- 빈 설정을 annotion기반으로 하겠다. -->
+	<context:annotation-config />
+
+	<!-- scanning 할 기준 패키지 -->
+	<context:component-scan base-package="com.bigdata2017.mysite.controller" />
+
+	<!-- ViewResolver 설정(03.spring ppt참고 -->
+	<bean id="viewResolver"
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="viewClass"
+			value="org.springframework.web.servlet.view.JstlView" />
+		<!-- setViewClass를 설정하여, Controller에서 String으로 넘길 때, 전체 주소를 적을 필요 없이 세팅으로 해결 -->
+		<property name="prefix" value="/WEB-INF/views/" />
+		<property name="suffix" value=".jsp" />
+		<property name="order" value="1" />
+	</bean>
+	
+	<!-- jsp 페이지에서 form tag로 enctype="multipart/form-data"라고 보내면, 파일이나 이미지를 여러개 업로드 할 때, --> 
+	<!-- 스프링에서 하나씩 따로따로 받을 수 있게 resolver를 지원해준다. 아래처럼 리졸버를 설정하고, 크기, 인코딩 등을 설정하고 사용할 수 있다. -->
+	<!-- 이러면 multipartResolver가 받은 파일들을 다 객체로 저장하고 있다. -->
+	<!-- 멀티파트 리졸버 -->
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+
+		<!-- 최대업로드 가능한 바이트크기 -->
+		<property name="maxUploadSize" value="52428800" />
+
+		<!-- 디스크에 임시 파일을 생성하기 전에 메모리에 보관할수있는 최대 바이트 크기 -->
+		<!-- property name="maxInMemorySize" value="52428800" / -->
+
+		<!-- defaultEncoding -->
+		<property name="defaultEncoding" value="utf-8" />
+	</bean>
+</beans>

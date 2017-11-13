@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee.xsd
+        http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang.xsd
+        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+        http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task.xsd">
+
+	<!-- AOP AutoProxy(꼭 존재해야함. 없으면 proxy가 안만들어짐) - spring에서 제공해주는 AOP로 @Around, @Before등을 연결해 사용 가능 -->
+	<aop:aspectj-autoproxy />
+
+	<context:annotation-config />
+
+	<context:component-scan
+		base-package="com.bigdata2017.mysite.repository, com.bigdata2017.mysite.service, com.bigdata2017.mysite.exception, com.bigdata2017.mysite.aspect">
+		<context:include-filter type="annotation"
+			expression="org.springframework.stereotype.Repository" />
+		<context:include-filter type="annotation"
+			expression="org.springframework.stereotype.Service" />
+		<context:include-filter type="annotation"
+			expression="org.springframework.stereotype.Component" />
+	</context:component-scan>
+
+	<!-- oracle datasource : pom.xml에 있는 oracle JDBC 라이브러리 안에 oracle connection 
+		pool이 있는데, spring JDBC를 pom.xml에 설정하면 아래와 같이 bean설정만으로 oracle JDBC에 접속가능하며, 
+		연결을 계속 유지한 상태에서 필요시마다 connection pool에서 꺼내어 사용하기에 성능이 향상된다. -->
+	<bean id="oracleDatasource" class="oracle.jdbc.pool.OracleDataSource"
+		destroy-method="close">
+		<!-- 요부분을 다른 컴퓨터의 ip로 지정해서 외부 DB에 접속해 사용할 수 있다. -->
+		<!-- property를 사용하면 setter를 사용하니, OracleDataSource객체의 setURL(), setUser()등을 실행하게 된다. -->
+		<!-- <property name="URL" value="jdbc:oracle:thin:@192.168.1.61:1521:xe" /> -->
+		<property name="URL" value="jdbc:oracle:thin:@localhost:1521:xe" />
+		<property name="user" value="webdb" />
+		<property name="password" value="webdb" />
+		<property name="connectionCachingEnabled" value="true" />
+		<qualifier value="main-db" />
+	</bean>
+
+	<!-- MyBatis SqlSessionFactoryBean -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="oracleDatasource" />
+		<property name="configLocation" value="classpath:mybatis/configuration.xml" />
+	</bean>
+
+	<!-- MyBatis SqlSessionTemplate -->
+	<bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">
+		<!-- SqlSessionTemplate의 생성자에 첫번째 파라미터에 sqlSessionFactory(SqlSessionFactoryBean) 객체를 넣어줌 -->
+		<constructor-arg index="0" ref="sqlSessionFactory" />
+	</bean>
+</beans>
