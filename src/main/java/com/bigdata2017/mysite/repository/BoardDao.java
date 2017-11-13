@@ -12,7 +12,7 @@ import com.bigdata2017.mysite.vo.BoardVo;
 
 @Repository
 public class BoardDao {
-	
+	//db 저장
 	@Autowired
 	private SqlSession sqlSession;
 	
